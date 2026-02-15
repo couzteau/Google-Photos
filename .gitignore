@@ -3,5 +3,9 @@ problematic_files/
 *.log
 .DS_Store
 __pycache__/
+google_photos_migrate/__pycache__/
+tests/__pycache__/
+*.egg-info/
 .claude/
 .vscode/
+.settings.local.json
