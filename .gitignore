@@ -3,3 +3,5 @@ problematic_files/
 *.log
 .DS_Store
 __pycache__/
+.claude/
+.vscode/
