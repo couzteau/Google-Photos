@@ -4,9 +4,9 @@ Organize Google Takeout photo exports into a clean `YYYY/MM/` folder structure w
 
 ## Why this exists
 
-**At Apple, you're a customer. At Google, you're the product.**
+**If you're not paying for the product, you are the product.**
 
-Google Photos is free because Google's business model is advertising and data. Their terms of service grant them a worldwide, royalty-free license to use, reproduce, modify, and distribute anything you upload -- including training AI models and creating derivative works. Your "private" album is private from other users, not from Google. Apple and Dropbox, by contrast, only claim the minimum rights needed to provide the sync service.
+Google Photos is free because Google's business model is advertising and data. Their terms of service grant them a worldwide, royalty-free license to use, reproduce, modify, and distribute anything you upload -- including training AI models and creating derivative works. Your "private" album is private from other users, not from Google.
 
 I decided to leave Google Photos for good, but getting out is harder than getting in. Google Takeout -- the only official export tool -- dumps your collection into dozens of numbered zip files with a chaotic structure: albums split across chunks, JSON metadata sidecars with truncated filenames, duplicates scattered everywhere, and no usable date-based organization. For my ~20,000 photos across 46 archives, it was a mess.
 
