@@ -1,0 +1,5 @@
+Takeout*/
+problematic_files/
+*.log
+.DS_Store
+__pycache__/

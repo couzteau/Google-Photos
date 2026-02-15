@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3:*)",
+      "Bash(pip3 install:*)",
+      "Bash(ls:*)",
+      "Bash(find:*)",
+      "Bash(shuf:*)",
+      "Bash(while read f)",
+      "Bash(do echo '=== $f ===')",
+      "Bash(done)",
+      "Bash(while IFS= read -r f)",
+      "Bash(git init:*)"
+    ]
+  }
+}
