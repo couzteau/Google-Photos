@@ -9,3 +9,4 @@ tests/__pycache__/*
 .claude/*
 .vscode/*
 settings.local.json
+dist/*

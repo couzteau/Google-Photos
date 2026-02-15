@@ -28,37 +28,42 @@ Sharing it because leaving Google shouldn't require a computer science degree. I
 ## Prerequisites
 
 - Python 3.9+
-- [Pillow](https://pypi.org/project/Pillow/) (for EXIF extraction)
 - A Google Takeout export with one or more `Takeout*/Google Photos/` directories
 
 ## Installation
 
+[![PyPI](https://img.shields.io/pypi/v/degoogle-photos)](https://pypi.org/project/degoogle-photos/)
+
 ```bash
-pip install -e .
+pip install degoogle-photos
 ```
 
-Or just run directly without installing:
+That's it. Pillow (for EXIF extraction) is installed automatically.
+
+### Alternative: run from source
 
 ```bash
-python3 migrate_photos.py --source /path/to/takeouts --output /path/to/organized
+git clone https://github.com/couzteau/Degoogle-Photos.git
+cd Degoogle-Photos
+pip install -e .
 ```
 
 ## Usage
 
 ```bash
 # Preview what would happen (no files copied)
-python3 migrate_photos.py --source /path/to/takeouts --output /path/to/organized --dry-run
+degoogle-photos --source /path/to/takeouts --output /path/to/organized --dry-run
 
 # Run the migration
-python3 migrate_photos.py --source /path/to/takeouts --output /path/to/organized
+degoogle-photos --source /path/to/takeouts --output /path/to/organized
 ```
 
 ### Options
 
 | Flag | Description |
 |------|-------------|
-| `--source PATH` | Root directory containing `Takeout*/` folders |
-| `--output PATH` | Destination for organized photos |
+| `--source PATH` | Root directory containing `Takeout*/` folders (required) |
+| `--output PATH` | Destination for organized photos (required) |
 | `--dry-run` | Report what would be done without copying any files |
 
 ## How it works
