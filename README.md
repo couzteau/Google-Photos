@@ -126,7 +126,7 @@ Once your photos are organized, you have options with better privacy terms:
 
 | Service | Terms summary | Cross-platform |
 |---------|--------------|----------------|
-| **Apple iCloud** | Minimal rights -- just enough to sync and store. No ad business model. | Apple devices + web (non-Apple users can upload via browser to shared albums) |
+| **Apple iCloud** | Minimal rights -- just enough to sync and store. No ad business model (you pay for storage via iCloud+). | Apple devices + web (non-Apple users can upload via browser to shared albums) |
 | **Adobe Lightroom** | Rights limited to operating services. No generative AI training on customer content. | Full cross-platform |
 | **Dropbox / OneDrive** | Rights limited to providing the service. No promotional or AI training use. | Full cross-platform |
 | **Self-hosted (Immich, PhotoPrism)** | You retain all rights. Requires technical setup. | Web-based, any device |
