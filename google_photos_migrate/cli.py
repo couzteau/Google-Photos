@@ -16,9 +16,6 @@ from .logging_util import MigrationLog
 # Configuration
 # ---------------------------------------------------------------------------
 
-SOURCE_ROOT = Path("/Volumes/Seldom Seen Smith/Resterampe/Google Photos")
-OUTPUT_ROOT = Path("/Volumes/Seldom Seen Smith/Resterampe/Google Photos Organized")
-
 MEDIA_EXTENSIONS = {
     ".jpg", ".jpeg", ".png", ".gif", ".heic", ".webp", ".bmp", ".tiff", ".tif",
     ".mp4", ".mov", ".avi", ".mkv", ".m4v", ".3gp", ".wmv", ".mpg", ".mpeg",
@@ -30,8 +27,8 @@ PROGRESS_INTERVAL = 500
 def main():
     parser = argparse.ArgumentParser(description="Migrate Google Takeout photos to YYYY/MM/ structure")
     parser.add_argument("--dry-run", action="store_true", help="Report what would be done without copying")
-    parser.add_argument("--source", type=Path, default=SOURCE_ROOT, help="Source root containing Takeout dirs")
-    parser.add_argument("--output", type=Path, default=OUTPUT_ROOT, help="Output root for organized photos")
+    parser.add_argument("--source", type=Path, required=True, help="Source root containing Takeout dirs")
+    parser.add_argument("--output", type=Path, required=True, help="Output root for organized photos")
     args = parser.parse_args()
 
     source_root = args.source
