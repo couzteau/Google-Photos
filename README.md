@@ -2,6 +2,20 @@
 
 Organize Google Takeout photo exports into a clean `YYYY/MM/` folder structure with deduplication, album symlinks, and a browsable HTML report.
 
+## Why this exists
+
+**At Apple, you're a customer. At Google, you're the product.**
+
+Google Photos is free because Google's business model is advertising and data. Their terms of service grant them a worldwide, royalty-free license to use, reproduce, modify, and distribute anything you upload -- including training AI models and creating derivative works. Your "private" album is private from other users, not from Google. Apple and Dropbox, by contrast, only claim the minimum rights needed to provide the sync service.
+
+I decided to leave Google Photos for good, but getting out is harder than getting in. Google Takeout -- the only official export tool -- dumps your collection into dozens of numbered zip files with a chaotic structure: albums split across chunks, JSON metadata sidecars with truncated filenames, duplicates scattered everywhere, and no usable date-based organization. For my ~20,000 photos across 46 archives, it was a mess.
+
+The go-to recommendation is the [Google Photos Takeout Helper](https://github.com/TheLastGimbus/GooglePhotosTakeoutHelper). I tried it. It crashed on a missing `geoDataExif` field in a JSON sidecar. Moved the problem file out, restarted. Crashed again on the next file. Moved the whole album folder. Crashed on a different folder with the same error. Each crash meant starting from scratch -- no resume support. After several rounds of this whack-a-mole I gave up. With 20,000 files and wildly inconsistent metadata across 46 archives, a tool that dies on the first unexpected field is effectively unusable.
+
+So I built this from scratch with [Claude](https://claude.ai)
+
+Sharing it because leaving Google shouldn't require a computer science degree. If the only thing keeping you on Google Photos is "I don't know how to get my photos out," this is how.
+
 ## What it does
 
 - Scans multiple `Takeout*/Google Photos/` directories and builds a global index
@@ -33,7 +47,7 @@ python3 migrate_photos.py --source /path/to/takeouts --output /path/to/organized
 
 ```bash
 # Preview what would happen (no files copied)
-python3 migrate_photos.py --dry-run
+python3 migrate_photos.py --source /path/to/takeouts --output /path/to/organized --dry-run
 
 # Run the migration
 python3 migrate_photos.py --source /path/to/takeouts --output /path/to/organized
@@ -100,6 +114,18 @@ pyproject.toml         # Project metadata and dependencies
 pip install -e ".[dev]"
 pytest -v
 ```
+
+## Where to put your photos after
+
+Once your photos are organized, you have options with better privacy terms:
+
+| Service | Terms summary | Cross-platform |
+|---------|--------------|----------------|
+| **Apple iCloud** | Minimal rights -- just enough to sync and store. No ad business model. | Apple devices + web (non-Apple users can upload via browser to shared albums) |
+| **Adobe Lightroom** | Rights limited to operating services. No generative AI training on customer content. | Full cross-platform |
+| **Dropbox / OneDrive** | Rights limited to providing the service. No promotional or AI training use. | Full cross-platform |
+| **Self-hosted (Immich, PhotoPrism)** | You retain all rights. Requires technical setup. | Web-based, any device |
+| **Google Photos** | Worldwide, royalty-free license to use, reproduce, modify, distribute. Can use for AI training, advertising, and derivative works. | Full cross-platform |
 
 ## License
 
