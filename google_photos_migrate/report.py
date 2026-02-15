@@ -111,6 +111,8 @@ class HtmlReport:
             '<meta name="viewport" content="width=device-width, initial-scale=1">',
             f'<title>{_html_escape(title)}</title>',
             '<link rel="stylesheet" href="style.css">',
+            '<script>function copyText(btn,t){navigator.clipboard.writeText(t).then(function(){'
+            'var o=btn.textContent;btn.textContent="Copied!";setTimeout(function(){btn.textContent=o},1000)})}</script>',
             '</head><body>',
         ]
         if back_link:
@@ -264,13 +266,19 @@ class HtmlReport:
         finder_btn = (f'<a class="finder-btn" href="file://{_html_escape(parent_dir)}/" '
                       f'title="Open folder in Finder">Finder</a>')
 
+        # Copy buttons
+        copy_name_btn = (f'<button class="copy-btn" onclick="copyText(this, \'{_html_escape(f["name"])}\')" '
+                         f'title="Copy filename">Name</button>')
+        copy_path_btn = (f'<button class="copy-btn" onclick="copyText(this, \'{_html_escape(f["dest"])}\')" '
+                         f'title="Copy full path">Path</button>')
+
         return (
             f'<div class="file-card">'
             f'{thumb}'
             f'<div class="file-info">'
             f'<div class="file-name" title="{_html_escape(f["name"])}">{_html_escape(f["name"])}</div>'
             f'<div class="file-date">{f["date"]}</div>'
-            f'<div class="file-meta">{src_badge} {json_badge} {finder_btn}</div>'
+            f'<div class="file-meta">{src_badge} {json_badge} {finder_btn} {copy_name_btn} {copy_path_btn}</div>'
             f'<div class="file-album" title="{_html_escape(f["album"])}">Album: {_html_escape(f["album"])}</div>'
             f'</div></div>'
         )
@@ -342,6 +350,10 @@ th { color: #8b949e; }
 .finder-btn { font-size: 0.6em; padding: 1px 6px; border-radius: 10px; font-weight: 600;
               background: #30363d; color: #c9d1d9; text-decoration: none; border: 1px solid #484f58; }
 .finder-btn:hover { background: #484f58; }
+.copy-btn { font-size: 0.6em; padding: 1px 6px; border-radius: 10px; font-weight: 600;
+            background: #30363d; color: #c9d1d9; border: 1px solid #484f58; cursor: pointer;
+            font-family: inherit; }
+.copy-btn:hover { background: #484f58; }
 details { margin: 8px 0; }
 summary { cursor: pointer; color: #58a6ff; font-size: 0.9em; }
 .errors table td { color: #f85149; }
