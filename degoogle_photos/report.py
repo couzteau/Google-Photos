@@ -126,9 +126,9 @@ class HtmlReport:
 
         html = []
         prefix = "[DRY RUN] " if self.dry_run else ""
-        html.append(self._page_head(f"{prefix}Google Photos Migration Report"))
+        html.append(self._page_head(f"{prefix}Degoogle-Photos Report"))
 
-        html.append(f'<header><h1>{prefix}Google Photos Migration Report</h1>')
+        html.append(f'<header><h1>{prefix}Degoogle-Photos Report</h1>')
         html.append(f'<p class="updated">Last updated: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}'
                      f' &mdash; {self.processed}/{self.total} files processed</p></header>')
 
