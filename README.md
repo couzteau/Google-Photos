@@ -1,4 +1,4 @@
-# degoogle-photos
+# Degoogle-Photos
 
 Organize Google Takeout photo exports into a clean `YYYY/MM/` folder structure with deduplication, album symlinks, and a browsable HTML report.
 
@@ -125,7 +125,7 @@ Once your photos are organized, you have options with better privacy terms:
 | **Adobe Lightroom** | Rights limited to operating services. No generative AI training on customer content. | Full cross-platform |
 | **Dropbox / OneDrive** | Rights limited to providing the service. No promotional or AI training use. | Full cross-platform |
 | **Self-hosted (Immich, PhotoPrism)** | You retain all rights. Requires technical setup. | Web-based, any device |
-| **Google Photos** | Worldwide, royalty-free license to use, reproduce, modify, distribute. Can use for AI training, advertising, and derivative works. | Full cross-platform |
+| **Local storage + backup** | Your files, your rights. Use the generated `report/index.html` to browse and review. Back up to an external drive or NAS. | Any device with file access |
 
 ## License
 
