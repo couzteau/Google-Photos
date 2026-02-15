@@ -25,10 +25,22 @@ Sharing it because leaving Google shouldn't require a computer science degree. I
 - Creates `Albums/` folder with relative symlinks for named albums
 - Generates a multi-page HTML report with thumbnails, metadata tooltips, and Finder links
 
+## Getting your photos out of Google
+
+1. Go to [takeout.google.com](https://takeout.google.com)
+2. Click **Deselect all**, then scroll down and select only **Google Photos**
+3. Click **Next step**
+4. Choose **Export once**, file type **.zip**, and size **2 GB** (or 50 GB if you have fast internet and lots of storage)
+5. Click **Create export**
+6. Wait -- Google prepares the archive in the background and emails you when it's ready (can take hours or even days for large collections)
+7. Download all the zip files and extract them into a single folder
+
+You'll end up with something like `Takeout/`, `Takeout-2/`, `Takeout-3/`, ... each containing a `Google Photos/` subfolder. That's your `--source` directory.
+
 ## Prerequisites
 
 - Python 3.9+
-- A Google Takeout export with one or more `Takeout*/Google Photos/` directories
+- A Google Takeout export (see above)
 
 ## Installation
 
