@@ -1,9 +1,9 @@
-"""Tests for google_photos_migrate.report."""
+"""Tests for degoogle_photos.report."""
 
 from datetime import datetime
 from pathlib import Path
 
-from google_photos_migrate.report import (
+from degoogle_photos.report import (
     HtmlReport,
     _html_escape,
     _slugify,

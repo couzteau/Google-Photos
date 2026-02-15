@@ -1,10 +1,10 @@
-"""Tests for google_photos_migrate.albums."""
+"""Tests for degoogle_photos.albums."""
 
 import os
 from pathlib import Path
 from unittest.mock import MagicMock
 
-from google_photos_migrate.albums import create_album_symlinks, _GENERIC_ALBUM_RE
+from degoogle_photos.albums import create_album_symlinks, _GENERIC_ALBUM_RE
 
 
 def _make_mock_log():

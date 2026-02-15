@@ -1,9 +1,9 @@
-"""Tests for google_photos_migrate.copy."""
+"""Tests for degoogle_photos.copy."""
 
 from datetime import datetime
 from pathlib import Path
 
-from google_photos_migrate.copy import (
+from degoogle_photos.copy import (
     compute_dest_path,
     resolve_collision,
     is_already_copied,

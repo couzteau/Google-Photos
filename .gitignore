@@ -3,7 +3,7 @@ problematic_files/*
 *.log
 .DS_Store
 __pycache__/*
-google_photos_migrate/__pycache__/*
+degoogle_photos/__pycache__/*
 tests/__pycache__/*
 *.egg-info/*
 .claude/*

@@ -1,9 +1,9 @@
-"""Tests for google_photos_migrate.metadata."""
+"""Tests for degoogle_photos.metadata."""
 
 import json
 from pathlib import Path
 
-from google_photos_migrate.metadata import extract_metadata
+from degoogle_photos.metadata import extract_metadata
 
 
 def test_extract_metadata_nonexistent_file(tmp_path):

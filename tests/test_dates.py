@@ -1,10 +1,10 @@
-"""Tests for google_photos_migrate.dates."""
+"""Tests for degoogle_photos.dates."""
 
 import json
 from datetime import datetime
 from pathlib import Path
 
-from google_photos_migrate.dates import (
+from degoogle_photos.dates import (
     extract_date,
     _date_from_filename,
     _date_from_json_field,

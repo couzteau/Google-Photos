@@ -1,9 +1,9 @@
-"""Tests for google_photos_migrate.dedup."""
+"""Tests for degoogle_photos.dedup."""
 
 from datetime import datetime
 from pathlib import Path
 
-from google_photos_migrate.dedup import compute_md5, make_dedup_key
+from degoogle_photos.dedup import compute_md5, make_dedup_key
 
 
 def test_compute_md5(tmp_path):

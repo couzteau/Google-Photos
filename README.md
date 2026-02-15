@@ -1,4 +1,4 @@
-# Google Photos Migrate
+# degoogle-photos
 
 Organize Google Takeout photo exports into a clean `YYYY/MM/` folder structure with deduplication, album symlinks, and a browsable HTML report.
 
@@ -84,7 +84,7 @@ The report is written to `<output>/report/index.html` and includes:
 ## Project structure
 
 ```
-google_photos_migrate/
+degoogle_photos/
   __init__.py          # Package version
   indexing.py          # Takeout directory scanning and JSON sidecar indexing
   dates.py             # Date extraction (EXIF, JSON, filename, mtime)

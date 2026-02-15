@@ -1,9 +1,9 @@
-"""Tests for google_photos_migrate.indexing."""
+"""Tests for degoogle_photos.indexing."""
 
 import json
 from pathlib import Path
 
-from google_photos_migrate.indexing import (
+from degoogle_photos.indexing import (
     find_takeout_dirs,
     build_index,
     _strip_sidecar_suffix,

@@ -1,5 +1,5 @@
 [project]
-name = "google-photos-migrate"
+name = "degoogle-photos"
 version = "1.0.0"
 description = "Organize Google Takeout photos into YYYY/MM/ folders with dedup and reporting"
 requires-python = ">=3.9"
@@ -9,4 +9,4 @@ dependencies = ["Pillow>=9.0"]
 dev = ["pytest>=7.0"]
 
 [project.scripts]
-google-photos-migrate = "google_photos_migrate.cli:main"
+degoogle-photos = "degoogle_photos.cli:main"
