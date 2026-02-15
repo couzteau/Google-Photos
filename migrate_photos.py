@@ -210,44 +210,40 @@ def find_json_for_media(media_path: Path, album_name: str, json_index: dict) -> 
 # Phase 2: Extract Dates
 # ---------------------------------------------------------------------------
 
-def extract_date(media_path: Path, json_path: Optional[Path]) -> Optional[datetime]:
+def extract_date(media_path: Path, json_path: Optional[Path]) -> Tuple[Optional[datetime], str]:
     """
-    Extract the best date for a media file using priority cascade:
-    1. EXIF DateTimeOriginal (photos only)
-    2. JSON photoTakenTime
-    3. Filename patterns
-    4. JSON creationTime
-    5. File mtime
+    Extract the best date for a media file using priority cascade.
+    Returns (datetime_or_None, source_label).
     """
     # 1. EXIF
     dt = _date_from_exif(media_path)
     if dt:
-        return dt
+        return dt, "exif"
 
     # 2. JSON photoTakenTime
     json_data = _load_json(json_path) if json_path else None
     if json_data:
         dt = _date_from_json_field(json_data, "photoTakenTime")
         if dt:
-            return dt
+            return dt, "json_taken"
 
     # 3. Filename pattern
     dt = _date_from_filename(media_path.name)
     if dt:
-        return dt
+        return dt, "filename"
 
     # 4. JSON creationTime
     if json_data:
         dt = _date_from_json_field(json_data, "creationTime")
         if dt:
-            return dt
+            return dt, "json_created"
 
     # 5. File mtime
     dt = _date_from_mtime(media_path)
     if dt:
-        return dt
+        return dt, "mtime"
 
-    return None
+    return None, "none"
 
 
 def _date_from_exif(media_path: Path) -> Optional[datetime]:
@@ -409,6 +405,216 @@ def copy_with_sidecar(
 # Phase 5: Reporting
 # ---------------------------------------------------------------------------
 
+IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".gif", ".heic", ".webp", ".bmp", ".tiff", ".tif"}
+
+HTML_UPDATE_INTERVAL = 200  # write HTML every N files
+
+
+class HtmlReport:
+    """Generates a browsable HTML report of the migration, updated incrementally."""
+
+    def __init__(self, output_root: Path, dry_run: bool):
+        self.output_root = output_root
+        self.dry_run = dry_run
+        self.html_path = output_root / "report.html"
+        # files_by_folder["2020/03"] = [{"name": ..., "dest": ..., ...}, ...]
+        self.files_by_folder = defaultdict(list)  # type: dict[str, list]
+        self.duplicates = []   # type: list[dict]
+        self.errors = []       # type: list[dict]
+        self.date_source_counts = defaultdict(int)  # type: dict[str, int]
+        self.total = 0
+        self.processed = 0
+        self._dirty = False
+
+    def add_copied(self, dest_path: Path, source_path: Path, dt: Optional[datetime],
+                   date_source: str, album: str, had_json: bool):
+        folder = f"{dt.year:04d}/{dt.month:02d}" if dt else "needs_review"
+        self.files_by_folder[folder].append({
+            "name": dest_path.name,
+            "dest": str(dest_path),
+            "source": str(source_path),
+            "date": dt.strftime("%Y-%m-%d %H:%M:%S") if dt else "",
+            "date_source": date_source,
+            "album": album,
+            "had_json": had_json,
+            "is_image": dest_path.suffix.lower() in IMAGE_EXTENSIONS,
+        })
+        self.date_source_counts[date_source] += 1
+        self._dirty = True
+
+    def add_duplicate(self, source_path: Path, md5: str):
+        self.duplicates.append({"source": str(source_path), "md5": md5})
+        self._dirty = True
+
+    def add_error(self, source_path: Path, error: str):
+        self.errors.append({"source": str(source_path), "error": error})
+        self._dirty = True
+
+    def maybe_write(self, current: int):
+        """Write HTML if enough files have been processed since last write."""
+        if current % HTML_UPDATE_INTERVAL == 0 or current == self.total:
+            if self._dirty:
+                self._write()
+                self._dirty = False
+
+    def _write(self):
+        self.output_root.mkdir(parents=True, exist_ok=True)
+        total_copied = sum(len(v) for v in self.files_by_folder.values())
+        total_dupes = len(self.duplicates)
+        total_errors = len(self.errors)
+
+        html = []
+        html.append(_HTML_HEAD)
+
+        # Summary
+        prefix = "[DRY RUN] " if self.dry_run else ""
+        html.append(f'<header><h1>{prefix}Google Photos Migration Report</h1>')
+        html.append(f'<p class="updated">Last updated: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}'
+                     f' &mdash; {self.processed}/{self.total} files processed</p></header>')
+
+        html.append('<section class="summary"><h2>Summary</h2><div class="stat-grid">')
+        html.append(f'<div class="stat"><span class="num">{total_copied}</span><span class="label">Copied</span></div>')
+        html.append(f'<div class="stat"><span class="num">{total_dupes}</span><span class="label">Duplicates skipped</span></div>')
+        html.append(f'<div class="stat"><span class="num">{total_errors}</span><span class="label">Errors</span></div>')
+        nr = len(self.files_by_folder.get("needs_review", []))
+        html.append(f'<div class="stat"><span class="num">{nr}</span><span class="label">Needs review</span></div>')
+        html.append('</div>')
+
+        # Date source breakdown
+        html.append('<h3>Date Sources</h3><table class="date-sources"><tr><th>Source</th><th>Count</th></tr>')
+        source_labels = {
+            "exif": "EXIF DateTimeOriginal",
+            "json_taken": "JSON photoTakenTime",
+            "filename": "Filename pattern",
+            "json_created": "JSON creationTime",
+            "mtime": "File modification time",
+            "none": "No date found",
+        }
+        for key in ["exif", "json_taken", "filename", "json_created", "mtime", "none"]:
+            cnt = self.date_source_counts.get(key, 0)
+            if cnt > 0:
+                html.append(f'<tr><td>{source_labels.get(key, key)}</td><td>{cnt}</td></tr>')
+        html.append('</table></section>')
+
+        # Folder browser
+        html.append('<section class="browser"><h2>Browse by Folder</h2>')
+        html.append('<div class="folder-nav">')
+        for folder in sorted(self.files_by_folder.keys()):
+            count = len(self.files_by_folder[folder])
+            css = ' class="review"' if folder == "needs_review" else ""
+            html.append(f'<a href="#folder-{folder.replace("/", "-")}"{css}>{folder} ({count})</a>')
+        html.append('</div>')
+
+        for folder in sorted(self.files_by_folder.keys()):
+            files = self.files_by_folder[folder]
+            anchor = folder.replace("/", "-")
+            html.append(f'<div class="folder" id="folder-{anchor}">')
+            html.append(f'<h3>{folder} <span class="count">({len(files)} files)</span></h3>')
+            html.append('<div class="file-grid">')
+            for f in files:
+                src_badge = f'<span class="badge badge-{f["date_source"]}">{f["date_source"]}</span>'
+                json_badge = '<span class="badge badge-json">JSON</span>' if f["had_json"] else ""
+                if f["is_image"]:
+                    thumb = f'<div class="thumb"><img loading="lazy" src="file://{_html_escape(f["dest"])}" alt="{_html_escape(f["name"])}"></div>'
+                else:
+                    ext = Path(f["name"]).suffix.upper()
+                    thumb = f'<div class="thumb vid-thumb">{ext}</div>'
+                html.append(
+                    f'<div class="file-card">'
+                    f'{thumb}'
+                    f'<div class="file-info">'
+                    f'<div class="file-name" title="{_html_escape(f["name"])}">{_html_escape(f["name"])}</div>'
+                    f'<div class="file-date">{f["date"]}</div>'
+                    f'<div class="file-meta">{src_badge} {json_badge}</div>'
+                    f'<div class="file-album" title="{_html_escape(f["album"])}">Album: {_html_escape(f["album"])}</div>'
+                    f'</div></div>'
+                )
+            html.append('</div></div>')
+
+        html.append('</section>')
+
+        # Duplicates
+        if self.duplicates:
+            html.append('<section class="dupes"><h2>Duplicates Skipped</h2>')
+            html.append(f'<p>{len(self.duplicates)} duplicate files were skipped.</p>')
+            html.append('<details><summary>Show all duplicates</summary><table><tr><th>Source</th><th>MD5</th></tr>')
+            for d in self.duplicates:
+                html.append(f'<tr><td>{_html_escape(d["source"])}</td><td><code>{d["md5"]}</code></td></tr>')
+            html.append('</table></details></section>')
+
+        # Errors
+        if self.errors:
+            html.append('<section class="errors"><h2>Errors</h2>')
+            html.append('<table><tr><th>Source</th><th>Error</th></tr>')
+            for e in self.errors:
+                html.append(f'<tr><td>{_html_escape(e["source"])}</td><td>{_html_escape(e["error"])}</td></tr>')
+            html.append('</table></section>')
+
+        html.append('</body></html>')
+        with open(self.html_path, "w", encoding="utf-8") as f:
+            f.write("\n".join(html))
+
+
+def _html_escape(s: str) -> str:
+    return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace('"', "&quot;")
+
+
+_HTML_HEAD = """<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Google Photos Migration Report</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+       background: #0d1117; color: #c9d1d9; padding: 20px; line-height: 1.5; }
+header { margin-bottom: 30px; }
+h1 { color: #58a6ff; font-size: 1.6em; }
+h2 { color: #58a6ff; margin: 20px 0 12px; font-size: 1.3em; border-bottom: 1px solid #21262d; padding-bottom: 6px; }
+h3 { color: #c9d1d9; margin: 14px 0 8px; font-size: 1.1em; }
+.updated { color: #8b949e; font-size: 0.9em; margin-top: 4px; }
+.stat-grid { display: flex; gap: 16px; flex-wrap: wrap; margin: 10px 0; }
+.stat { background: #161b22; border: 1px solid #21262d; border-radius: 8px;
+        padding: 16px 24px; text-align: center; min-width: 140px; }
+.stat .num { display: block; font-size: 2em; font-weight: 700; color: #58a6ff; }
+.stat .label { color: #8b949e; font-size: 0.85em; }
+table { border-collapse: collapse; width: 100%; margin: 8px 0; }
+th, td { text-align: left; padding: 6px 10px; border-bottom: 1px solid #21262d; font-size: 0.85em; }
+th { color: #8b949e; }
+.date-sources { width: auto; }
+.folder-nav { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 20px; }
+.folder-nav a { background: #161b22; border: 1px solid #21262d; border-radius: 6px;
+                padding: 4px 10px; color: #58a6ff; text-decoration: none; font-size: 0.85em; }
+.folder-nav a:hover { background: #1f2937; }
+.folder-nav a.review { color: #f0883e; border-color: #f0883e; }
+.folder { margin-bottom: 30px; }
+.count { color: #8b949e; font-weight: 400; font-size: 0.9em; }
+.file-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+.file-card { background: #161b22; border: 1px solid #21262d; border-radius: 8px; overflow: hidden; }
+.thumb { width: 100%; height: 160px; overflow: hidden; display: flex; align-items: center;
+         justify-content: center; background: #0d1117; }
+.thumb img { width: 100%; height: 100%; object-fit: cover; }
+.vid-thumb { color: #8b949e; font-size: 1.4em; font-weight: 700; }
+.file-info { padding: 8px 10px; }
+.file-name { font-size: 0.8em; font-weight: 600; color: #c9d1d9; white-space: nowrap;
+             overflow: hidden; text-overflow: ellipsis; }
+.file-date { font-size: 0.75em; color: #8b949e; margin: 2px 0; }
+.file-meta { display: flex; gap: 4px; margin: 4px 0; flex-wrap: wrap; }
+.file-album { font-size: 0.7em; color: #6e7681; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.badge { font-size: 0.65em; padding: 1px 6px; border-radius: 10px; font-weight: 600; }
+.badge-exif { background: #1f6feb33; color: #58a6ff; }
+.badge-json_taken { background: #23863633; color: #3fb950; }
+.badge-filename { background: #9e6a03aa; color: #e3b341; }
+.badge-json_created { background: #23863633; color: #3fb950; }
+.badge-mtime { background: #f0883e33; color: #f0883e; }
+.badge-none { background: #f8514933; color: #f85149; }
+.badge-json { background: #23863633; color: #3fb950; }
+details { margin: 8px 0; }
+summary { cursor: pointer; color: #58a6ff; font-size: 0.9em; }
+.errors table td { color: #f85149; }
+code { font-size: 0.8em; color: #8b949e; }
+</style></head><body>"""
+
+
 class MigrationLog:
     """Handles logging to file and console progress."""
 
@@ -424,6 +630,7 @@ class MigrationLog:
         self._log_lines = []
         self._review_lines = []
         self._start_time = time.time()
+        self.html = HtmlReport(output_root, dry_run)
 
     def log(self, msg: str):
         self._log_lines.append(msg)
@@ -432,6 +639,8 @@ class MigrationLog:
         self._review_lines.append(f"{media_path}  -- {reason}")
 
     def progress(self, current: int, total: int):
+        self.html.processed = current
+        self.html.maybe_write(current)
         if current % PROGRESS_INTERVAL == 0 or current == total:
             elapsed = time.time() - self._start_time
             rate = current / elapsed if elapsed > 0 else 0
@@ -448,6 +657,10 @@ class MigrationLog:
     def write_logs(self):
         prefix = "[DRY RUN] " if self.dry_run else ""
         elapsed = time.time() - self._start_time
+
+        # Final HTML write
+        self.html._write()
+        print(f"\nHTML report: {self.html.html_path}")
 
         summary = (
             f"\n{'='*60}\n"
@@ -516,6 +729,7 @@ def main():
     print(f"  Indexed {total_jsons} JSON sidecars across {len(json_index)} albums")
 
     log.total = len(media_files)
+    log.html.total = len(media_files)
 
     # Phase 2-4: Process each media file
     print(f"\nPhase 2-4: Processing files{' (dry run)' if dry_run else ''}...")
@@ -527,7 +741,7 @@ def main():
             json_path = find_json_for_media(media_path, album_name, json_index)
 
             # Extract date
-            dt = extract_date(media_path, json_path)
+            dt, date_source = extract_date(media_path, json_path)
 
             # Compute destination
             dest_path = compute_dest_path(output_root, media_path, dt)
@@ -536,6 +750,8 @@ def main():
             if is_already_copied(media_path, dest_path):
                 log.skipped_resume += 1
                 log.log(f"SKIP_RESUME: {media_path} -> {dest_path}")
+                log.html.add_copied(dest_path, media_path, dt, date_source,
+                                    album_name, json_path is not None)
                 log.progress(i, log.total)
                 continue
 
@@ -546,6 +762,7 @@ def main():
             if dedup_key in seen_dedup_keys:
                 log.skipped_dupes += 1
                 log.log(f"SKIP_DUPE: {media_path} (md5={md5})")
+                log.html.add_duplicate(media_path, md5)
                 log.progress(i, log.total)
                 continue
             seen_dedup_keys.add(dedup_key)
@@ -557,20 +774,29 @@ def main():
                 if not dry_run:
                     actual_dest = copy_with_sidecar(media_path, json_path, dest_path, dry_run)
                     log.log(f"REVIEW: {media_path} -> {actual_dest}")
+                    log.html.add_copied(actual_dest, media_path, dt, date_source,
+                                        album_name, json_path is not None)
                 else:
                     log.log(f"REVIEW: {media_path} -> {dest_path}")
+                    log.html.add_copied(dest_path, media_path, dt, date_source,
+                                        album_name, json_path is not None)
             else:
                 # Normal copy
                 if not dry_run:
                     actual_dest = copy_with_sidecar(media_path, json_path, dest_path, dry_run)
                     log.log(f"COPY: {media_path} -> {actual_dest} (date={dt})")
+                    log.html.add_copied(actual_dest, media_path, dt, date_source,
+                                        album_name, json_path is not None)
                 else:
                     log.log(f"COPY: {media_path} -> {dest_path} (date={dt})")
+                    log.html.add_copied(dest_path, media_path, dt, date_source,
+                                        album_name, json_path is not None)
                 log.copied += 1
 
         except Exception as e:
             log.errors += 1
             log.log(f"ERROR: {media_path} -- {type(e).__name__}: {e}")
+            log.html.add_error(media_path, f"{type(e).__name__}: {e}")
 
         log.progress(i, log.total)
 
