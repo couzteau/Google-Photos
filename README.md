@@ -152,7 +152,7 @@ Once your photos are organized, you have options with better privacy terms:
 
 [Immich](https://immich.app/) is a free, open-source, self-hosted photo platform with face recognition, map view, timeline browsing, mobile apps, and AI-powered search -- all running on your own hardware. Your photos never leave your network. It's the closest thing to Google Photos without giving up your privacy.
 
-It requires [Docker](https://docs.docker.com/get-docker/) and a bit of terminal comfort to set up, but the [install guide](https://immich.app/docs/install/docker-compose) is straightforward -- and if you get stuck, any AI assistant can walk you through it in minutes.
+Setup is quick -- it runs locally via [Docker](https://docs.docker.com/get-docker/) and the [install guide](https://immich.app/docs/install/docker-compose) is straightforward. If you get stuck, any AI assistant can walk you through it in minutes. Once running, Immich's smart search (by face, location, object, or scene) fully replaces what you'd need Google Photos for when it comes to finding and sorting your photos.
 
 After running degoogle-photos, create an API key in the Immich web UI (Account Settings > API Keys), then authenticate and upload:
 
