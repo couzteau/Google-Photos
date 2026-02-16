@@ -6,24 +6,13 @@ Unfuck the mess that Google Takeout makes of your photo library. Takes the dozen
 
 **If you're not paying for the product, you are the product.**
 
-Google Photos is free because Google's business model is advertising and data. Their terms of service grant them a worldwide, royalty-free license to use, reproduce, modify, and distribute anything you upload -- including training AI models and creating derivative works. Your "private" album is private from other users, not from Google.
+Google Photos is free because their business model is advertising and data. Their terms grant them a worldwide, royalty-free license to use, reproduce, modify, and distribute your uploads -- including AI training. Your "private" album is private from other users, not from Google.
 
-I decided to leave Google Photos for good, but getting out is harder than getting in. Google Takeout -- the only official export tool -- dumps your collection into dozens of numbered zip files with a chaotic structure: albums split across chunks, JSON metadata sidecars with truncated filenames, duplicates scattered everywhere, and no usable date-based organization. For my ~20,000 photos across 46 archives, it was a mess.
+I decided to leave. Google Takeout -- the only official export -- dumps your library into dozens of numbered zips: albums split across chunks, JSON metadata with truncated filenames, duplicates everywhere, no usable organization. For my ~20,000 photos across 46 archives, it was unusable.
 
-The go-to recommendation is the [Google Photos Takeout Helper](https://github.com/TheLastGimbus/GooglePhotosTakeoutHelper). I tried it. It crashed on a missing `geoDataExif` field in a JSON sidecar. Moved the problem file out, restarted. Crashed again on the next file. Moved the whole album folder. Crashed on a different folder with the same error. Each crash meant starting from scratch -- no resume support. After several rounds of this whack-a-mole I gave up. With 20,000 files and wildly inconsistent metadata across 46 archives, a tool that dies on the first unexpected field is effectively unusable.
+The popular [Google Photos Takeout Helper](https://github.com/TheLastGimbus/GooglePhotosTakeoutHelper) crashed repeatedly on missing metadata fields with no resume support. After several rounds of whack-a-mole I gave up.
 
-So I built this from scratch with [Claude](https://claude.ai)
-
-Sharing it because leaving Google shouldn't require a computer science degree. If the only thing keeping you on Google Photos is "I don't know how to get my photos out," this is how.
-
-## What it does
-
-- Scans multiple `Takeout*/Google Photos/` directories and builds a global index
-- Extracts the best date for each file (EXIF > JSON photoTakenTime > filename > JSON creationTime > file mtime)
-- Deduplicates by MD5 hash + date (rounded to the minute)
-- Copies media files into `YYYY/MM/` folders, preserving JSON sidecars alongside
-- Creates `Albums/` folder with relative symlinks for named albums
-- Generates a multi-page HTML report with thumbnails, metadata tooltips, and Finder links
+So I built this with Claude. Sharing it because leaving Google shouldn't require a computer science degree.
 
 ## Getting your photos out of Google
 
@@ -36,6 +25,15 @@ Sharing it because leaving Google shouldn't require a computer science degree. I
 7. Download all the zip files and extract them into a single folder
 
 You'll end up with something like `Takeout/`, `Takeout-2/`, `Takeout-3/`, ... each containing a `Google Photos/` subfolder. That's your `--source` directory.
+
+## What it does
+
+- Scans multiple `Takeout*/Google Photos/` directories and builds a global index
+- Extracts the best date for each file (EXIF > JSON photoTakenTime > filename > JSON creationTime > file mtime)
+- Deduplicates by MD5 hash + date (rounded to the minute)
+- Copies media files into `YYYY/MM/` folders, preserving JSON sidecars alongside
+- Creates `Albums/` folder with relative symlinks for named albums
+- Generates a multi-page HTML report with thumbnails, metadata tooltips, and Finder links
 
 ## Prerequisites
 
@@ -155,6 +153,10 @@ Once your photos are organized, you have options with better privacy terms:
 | **Dropbox / OneDrive** | Rights limited to providing the service. No promotional or AI training use. | Full cross-platform | Free tier available | Paid |
 | **Self-hosted (Immich, PhotoPrism)** | You retain all rights. Requires technical setup. | Web-based, any device | Free | Free |
 | **Local storage + backup** | Your files, your rights. Use the generated `report/index.html` to browse and review. | Any device with file access | Free | Free |
+
+## Roadmap
+
+See [ROADMAP.md](ROADMAP.md) for planned features including local AI-powered face recognition.
 
 ## License
 
