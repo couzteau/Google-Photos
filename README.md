@@ -63,19 +63,23 @@ pip install -e .
 ## Usage
 
 ```bash
-# Preview what would happen (no files copied)
-degoogle-photos --source /path/to/takeouts --output /path/to/organized --dry-run
+# Simplest: cd into the folder with your Takeout dirs and run
+cd /path/to/takeouts
+degoogle-photos
 
-# Run the migration
+# Or specify paths explicitly
 degoogle-photos --source /path/to/takeouts --output /path/to/organized
+
+# Preview what would happen (no files copied)
+degoogle-photos --dry-run
 ```
 
 ### Options
 
 | Flag | Description |
 |------|-------------|
-| `--source PATH` | Root directory containing `Takeout*/` folders (required) |
-| `--output PATH` | Destination for organized photos (required) |
+| `--source PATH` | Root directory containing `Takeout*/` folders (default: current directory) |
+| `--output PATH` | Destination for organized photos (default: `./Google Photos Organized`) |
 | `--dry-run` | Report what would be done without copying any files |
 
 ## How it works

@@ -27,8 +27,10 @@ PROGRESS_INTERVAL = 500
 def main():
     parser = argparse.ArgumentParser(description="Migrate Google Takeout photos to YYYY/MM/ structure")
     parser.add_argument("--dry-run", action="store_true", help="Report what would be done without copying")
-    parser.add_argument("--source", type=Path, required=True, help="Source root containing Takeout dirs")
-    parser.add_argument("--output", type=Path, required=True, help="Output root for organized photos")
+    parser.add_argument("--source", type=Path, default=Path.cwd(),
+                        help="Source root containing Takeout dirs (default: current directory)")
+    parser.add_argument("--output", type=Path, default=Path.cwd() / "Google Photos Organized",
+                        help="Output root for organized photos (default: ./Google Photos Organized)")
     args = parser.parse_args()
 
     source_root = args.source
