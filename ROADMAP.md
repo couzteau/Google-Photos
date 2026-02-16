@@ -14,30 +14,15 @@
 - ✅ Cross-platform support (macOS, Linux, Windows)
 - ✅ PyPI package distribution
 
-## v1.0.0 - Modern Photo App Experience (In Progress)
+## v1.0.0
 
-The foundation works. Time to make it beautiful.
+- [ ] **Import non-Takeout photo folders**
+  - [ ] Support organizing arbitrary photo directories (not just Google Takeout exports)
+  - [ ] `--no-takeout` flag to skip Takeout-specific logic and treat source as a plain photo folder
 
-- [ ] **Modern web-based photo browser**
-  - [ ] Clean, responsive grid layout
-  - [ ] Lightbox for full-size viewing with keyboard navigation
-  - [ ] Timeline view (scroll through years/months)
-  - [ ] Map view for geotagged photos
-  - [ ] Album browser with cover images
-  - [ ] Search and filtering (date ranges, albums, file types)
-  - [ ] Light mode support
-  - [ ] Mobile/tablet optimized
+- [ ] **Bug fixes**
+  - [ ] Fix JSON and EXIF badges truncated by card boundary in HTML report
 
-- [ ] **Enhanced metadata display**
-  - [ ] EXIF sidebar (camera, settings, location)
-  - [ ] Edit dates/locations/captions
-  - [ ] Star/favorite photos
-  - [ ] Quick sharing (export selections)
-
-- [ ] **Performance & polish**
-  - [ ] Lazy loading for large collections
-  - [ ] Thumbnail caching
+- [ ] **Polish**
   - [ ] Progress indication during migration
   - [ ] Better error messages and recovery
-
-**Goal:** Make the post-migration experience feel like a real photo app, not just organized folders. When you browse your degoogled photos, it should feel *better*

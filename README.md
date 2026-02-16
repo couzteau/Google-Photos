@@ -146,17 +146,33 @@ pytest -v
 
 Once your photos are organized, you have options with better privacy terms:
 
+### Recommended: Immich (self-hosted Google Photos replacement)
+
+[Immich](https://immich.app/) is a free, open-source, self-hosted photo platform with face recognition, map view, timeline browsing, mobile apps, and AI-powered search -- all running on your own hardware. Your photos never leave your network. It's the closest thing to Google Photos without giving up your privacy.
+
+It requires [Docker](https://docs.docker.com/get-docker/) and a bit of terminal comfort to set up, but the [install guide](https://immich.app/docs/install/docker-compose) is straightforward -- and if you get stuck, any AI assistant can walk you through it in minutes.
+
+After running degoogle-photos, create an API key in the Immich web UI (Account Settings > API Keys), then authenticate and upload:
+
+```bash
+immich login http://localhost:2283 YOUR-API-KEY
+immich upload --recursive /path/to/DeGoogled\ Photos
+```
+
+Immich will pick up the dates and folder structure automatically.
+
+### Other options
+
 | Service | Terms summary | Cross-platform | License | Storage |
 |---------|--------------|----------------|---------|---------|
 | **Apple iCloud** | Minimal rights -- just enough to sync and store. No ad business model. | Apple devices + web (non-Apple users can upload via browser) | Free | Paid |
 | **Adobe Lightroom** | Rights limited to operating services. No generative AI training on customer content. | Full cross-platform | Paid | Included |
 | **Dropbox / OneDrive** | Rights limited to providing the service. No promotional or AI training use. | Full cross-platform | Free tier available | Paid |
-| **Self-hosted (Immich, PhotoPrism)** | You retain all rights. Requires technical setup. | Web-based, any device | Free | Free |
 | **Local storage + backup** | Your files, your rights. Use the generated `report/index.html` to browse and review. | Any device with file access | Free | Free |
 
 ## Roadmap
 
-See [ROADMAP.md](ROADMAP.md) for planned features including local AI-powered face recognition.
+See [ROADMAP.md](ROADMAP.md) for planned features.
 
 ## License
 
