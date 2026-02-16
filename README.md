@@ -46,13 +46,19 @@ You'll end up with something like `Takeout/`, `Takeout-2/`, `Takeout-3/`, ... ea
 
 [![PyPI](https://img.shields.io/pypi/v/degoogle-photos)](https://pypi.org/project/degoogle-photos/)
 
+**Windows:**
 ```bash
 pip install degoogle-photos
 ```
 
+**macOS / Linux:**
+```bash
+pip3 install degoogle-photos
+```
+
 That's it. Pillow (for EXIF extraction) is installed automatically.
 
-**Troubleshooting:** If you get "No matching distribution found" or warnings about Python 2.7, your `pip` is pointing at an old Python. Use `pip3 install degoogle-photos` or `python3 -m pip install degoogle-photos` instead.
+> **Why `pip3`?** Many macOS and Linux systems still have Python 2.7 as the default `pip`. If you see "No matching distribution found" or warnings about Python 2.7, that's why. `pip3` ensures you're using Python 3.
 
 ### Alternative: run from source
 
@@ -81,7 +87,7 @@ degoogle-photos --dry-run
 | Flag | Description |
 |------|-------------|
 | `--source PATH` | Root directory containing `Takeout*/` folders (default: current directory) |
-| `--output PATH` | Destination for organized photos (default: `./Google Photos Organized`) |
+| `--output PATH` | Destination for organized photos (default: `./DeGoogled Photos`) |
 | `--dry-run` | Report what would be done without copying any files |
 
 ## How it works

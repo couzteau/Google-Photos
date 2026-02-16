@@ -29,8 +29,8 @@ def main():
     parser.add_argument("--dry-run", action="store_true", help="Report what would be done without copying")
     parser.add_argument("--source", type=Path, default=Path.cwd(),
                         help="Source root containing Takeout dirs (default: current directory)")
-    parser.add_argument("--output", type=Path, default=Path.cwd() / "Google Photos Organized",
-                        help="Output root for organized photos (default: ./Google Photos Organized)")
+    parser.add_argument("--output", type=Path, default=Path.cwd() / "DeGoogled Photos",
+                        help="Output root for organized photos (default: ./DeGoogled Photos)")
     args = parser.parse_args()
 
     source_root = args.source
