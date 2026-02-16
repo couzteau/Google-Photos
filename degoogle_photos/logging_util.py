@@ -1,6 +1,7 @@
 """Migration logging — file + console progress reporting."""
 
 import time
+import webbrowser
 from pathlib import Path
 
 from .report import HtmlReport
@@ -91,3 +92,10 @@ class MigrationLog:
                 print(f"Review log written to: {readme}")
         else:
             print("(Dry run — no files written)")
+
+        # Print paths and open report at the very end
+        report_index = self.html.report_dir / "index.html"
+        print(f"\nOutput folder: {self.output_root.resolve()}")
+        print(f"HTML report:   {report_index.resolve()}")
+        if report_index.exists():
+            webbrowser.open(report_index.resolve().as_uri())
