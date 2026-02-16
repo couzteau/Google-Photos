@@ -52,12 +52,14 @@ pip install degoogle-photos
 
 That's it. Pillow (for EXIF extraction) is installed automatically.
 
+**Troubleshooting:** If you get "No matching distribution found" or warnings about Python 2.7, your `pip` is pointing at an old Python. Use `pip3 install degoogle-photos` or `python3 -m pip install degoogle-photos` instead.
+
 ### Alternative: run from source
 
 ```bash
 git clone https://github.com/couzteau/Degoogle-Photos.git
 cd Degoogle-Photos
-pip install -e .
+pip3 install -e .
 ```
 
 ## Usage
