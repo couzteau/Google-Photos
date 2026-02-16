@@ -148,13 +148,13 @@ pytest -v
 
 Once your photos are organized, you have options with better privacy terms:
 
-| Service | Terms summary | Cross-platform |
-|---------|--------------|----------------|
-| **Apple iCloud** | Minimal rights -- just enough to sync and store. No ad business model (you pay for storage via iCloud+). | Apple devices + web (non-Apple users can upload via browser to shared albums) |
-| **Adobe Lightroom** | Rights limited to operating services. No generative AI training on customer content. | Full cross-platform |
-| **Dropbox / OneDrive** | Rights limited to providing the service. No promotional or AI training use. | Full cross-platform |
-| **Self-hosted (Immich, PhotoPrism)** | You retain all rights. Requires technical setup. | Web-based, any device |
-| **Local storage + backup** | Your files, your rights. Use the generated `report/index.html` to browse and review. Back up to an external drive or NAS. | Any device with file access |
+| Service | Terms summary | Cross-platform | License | Storage |
+|---------|--------------|----------------|---------|---------|
+| **Apple iCloud** | Minimal rights -- just enough to sync and store. No ad business model. | Apple devices + web (non-Apple users can upload via browser) | Free | Paid |
+| **Adobe Lightroom** | Rights limited to operating services. No generative AI training on customer content. | Full cross-platform | Paid | Included |
+| **Dropbox / OneDrive** | Rights limited to providing the service. No promotional or AI training use. | Full cross-platform | Free tier available | Paid |
+| **Self-hosted (Immich, PhotoPrism)** | You retain all rights. Requires technical setup. | Web-based, any device | Free | Free |
+| **Local storage + backup** | Your files, your rights. Use the generated `report/index.html` to browse and review. | Any device with file access | Free | Free |
 
 ## License
 
