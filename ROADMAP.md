@@ -25,7 +25,7 @@ The foundation works. Time to make it beautiful.
   - [ ] Map view for geotagged photos
   - [ ] Album browser with cover images
   - [ ] Search and filtering (date ranges, albums, file types)
-  - [ ] Dark mode support
+  - [ ] Light mode support
   - [ ] Mobile/tablet optimized
 
 - [ ] **Enhanced metadata display**
