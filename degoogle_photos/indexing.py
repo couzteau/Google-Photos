@@ -7,13 +7,53 @@ from typing import Dict, List, Optional, Set, Tuple
 
 
 def find_takeout_dirs(source_root: Path) -> List[Path]:
-    """Find all Takeout*/Google Photos/ directories."""
+    """
+    Find all Takeout*/Google Photos/ directories.
+
+    Handles several common ways users might point --source:
+    1. Parent containing Takeout*/ dirs           (intended usage)
+    2. A Takeout dir directly (has Google Photos/)
+    3. The Google Photos dir itself inside a Takeout
+    4. A grandparent containing subdirs that contain Takeout*/ dirs
+    """
     dirs = []
+
+    # Case 1: source_root contains Takeout*/ children (standard case)
     for entry in sorted(source_root.iterdir()):
         if entry.is_dir() and entry.name.startswith("Takeout"):
             gp_dir = entry / "Google Photos"
             if gp_dir.is_dir():
                 dirs.append(gp_dir)
+    if dirs:
+        return dirs
+
+    # Case 2: source_root IS a Takeout dir (has Google Photos/ inside)
+    gp_dir = source_root / "Google Photos"
+    if gp_dir.is_dir():
+        print(f"  (Auto-detected: --source points at a Takeout directory)")
+        return [gp_dir]
+
+    # Case 3: source_root IS the Google Photos dir (has album subdirs with media)
+    if source_root.name == "Google Photos":
+        # Verify it looks like a Google Photos dir (has subdirectories)
+        has_subdirs = any(p.is_dir() for p in source_root.iterdir())
+        if has_subdirs:
+            print(f"  (Auto-detected: --source points at a Google Photos directory)")
+            return [source_root]
+
+    # Case 4: source_root is a grandparent (e.g. user pointed at "Pictures/google photos")
+    # Look one level deeper for dirs containing Takeout*/Google Photos/
+    for child in sorted(source_root.iterdir()):
+        if not child.is_dir():
+            continue
+        for grandchild in child.iterdir():
+            if grandchild.is_dir() and grandchild.name.startswith("Takeout"):
+                gp_dir = grandchild / "Google Photos"
+                if gp_dir.is_dir():
+                    dirs.append(gp_dir)
+    if dirs:
+        print(f"  (Auto-detected: found Takeout directories one level deeper)")
+
     return dirs
 
 

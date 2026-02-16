@@ -27,6 +27,32 @@ def test_find_takeout_dirs_ignores_non_takeout(tmp_path):
     assert len(dirs) == 1
 
 
+def test_find_takeout_dirs_pointed_at_takeout_dir(tmp_path):
+    """Case 2: user points --source at the Takeout dir itself."""
+    takeout = tmp_path / "Takeout"
+    (takeout / "Google Photos" / "Album1").mkdir(parents=True)
+    dirs = find_takeout_dirs(takeout)
+    assert len(dirs) == 1
+    assert dirs[0].name == "Google Photos"
+
+
+def test_find_takeout_dirs_pointed_at_google_photos(tmp_path):
+    """Case 3: user points --source at the Google Photos dir."""
+    gp = tmp_path / "Takeout" / "Google Photos"
+    (gp / "Album1").mkdir(parents=True)
+    dirs = find_takeout_dirs(gp)
+    assert len(dirs) == 1
+    assert dirs[0] == gp
+
+
+def test_find_takeout_dirs_grandparent(tmp_path):
+    """Case 4: user points --source one level above the Takeout dirs."""
+    (tmp_path / "export1" / "Takeout" / "Google Photos").mkdir(parents=True)
+    (tmp_path / "export2" / "Takeout" / "Google Photos").mkdir(parents=True)
+    dirs = find_takeout_dirs(tmp_path)
+    assert len(dirs) == 2
+
+
 def test_build_index(fake_takeout):
     dirs = find_takeout_dirs(fake_takeout)
     media, json_idx = build_index(dirs, MEDIA_EXTENSIONS)
