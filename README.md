@@ -1,6 +1,6 @@
 # Degoogle-Photos
 
-Organize Google Takeout photo exports into a clean `YYYY/MM/` folder structure with deduplication, album symlinks, and a browsable HTML report.
+Unfuck the mess that Google Takeout makes of your photo library. Takes the dozens of chaotic zip archives, deduplicates, extracts dates, and organizes everything into clean `YYYY/MM/` folders with album symlinks and a browsable HTML report.
 
 ## Why this exists
 
