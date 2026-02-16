@@ -69,7 +69,7 @@ pip3 install -e .
 ## Usage
 
 ```bash
-# Simplest: cd into the folder with your Takeout dirs and run
+# Simplest: cd into the folder with your extrackted Takeout dirs and run
 cd /path/to/takeouts
 degoogle-photos
 
@@ -87,6 +87,8 @@ degoogle-photos --dry-run
 | `--source PATH` | Root directory containing `Takeout*/` folders (default: current directory) |
 | `--output PATH` | Destination for organized photos (default: `./DeGoogled Photos`) |
 | `--dry-run` | Report what would be done without copying any files |
+
+The script is **safe to stop and restart** at any time. It detects files that have already been copied and skips them, so you'll never end up with duplicates -- even if you run it multiple times or interrupt it halfway through.
 
 ## How it works
 
