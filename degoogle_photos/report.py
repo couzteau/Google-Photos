@@ -271,11 +271,11 @@ class HtmlReport:
         finder_btn = (f'<a class="finder-btn" href="file://{_html_escape(parent_dir)}/" '
                       f'title="Open folder in Finder">Finder</a>')
 
-        # Copy buttons
+        # Copy buttons (clipboard icon: &#x1f4cb;)
         copy_name_btn = (f'<button class="copy-btn" onclick="copyText(this, \'{_html_escape(f["name"])}\')" '
-                         f'title="Copy filename">Name</button>')
+                         f'title="Copy filename">&#x1f4cb; Name</button>')
         copy_path_btn = (f'<button class="copy-btn" onclick="copyText(this, \'{_html_escape(f["dest"])}\')" '
-                         f'title="Copy full path">Path</button>')
+                         f'title="Copy full path">&#x1f4cb; Path</button>')
 
         return (
             f'<div class="file-card">'
@@ -328,16 +328,16 @@ th { color: #8b949e; }
 .folder-nav a.review { color: #f0883e; border-color: #f0883e; }
 .count { color: #8b949e; font-weight: 400; font-size: 0.9em; }
 .file-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
-.file-card { background: #161b22; border: 1px solid #21262d; border-radius: 8px; overflow: hidden; }
+.file-card { background: #161b22; border: 1px solid #21262d; border-radius: 8px; position: relative; }
 .thumb { width: 100%; height: 160px; overflow: hidden; display: flex; align-items: center;
-         justify-content: center; background: #0d1117; }
+         justify-content: center; background: #0d1117; border-radius: 8px 8px 0 0; }
 .thumb img { width: 100%; height: 100%; object-fit: cover; }
 .vid-thumb { color: #8b949e; font-size: 1.4em; font-weight: 700; }
-.file-info { padding: 8px 10px; }
+.file-info { padding: 8px 10px; overflow: visible; }
 .file-name { font-size: 0.8em; font-weight: 600; color: #c9d1d9; white-space: nowrap;
              overflow: hidden; text-overflow: ellipsis; }
 .file-date { font-size: 0.75em; color: #8b949e; margin: 2px 0; }
-.file-meta { display: flex; gap: 4px; margin: 4px 0; flex-wrap: wrap; align-items: center; }
+.file-meta { display: flex; gap: 4px; margin: 4px 0; flex-wrap: wrap; align-items: center; overflow: visible; }
 .file-album { font-size: 0.7em; color: #6e7681; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .badge { font-size: 0.65em; padding: 1px 6px; border-radius: 10px; font-weight: 600; }
 .badge-exif { background: #1f6feb33; color: #58a6ff; }
