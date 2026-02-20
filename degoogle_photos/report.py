@@ -302,7 +302,8 @@ _FOOTER = (
 _CSS = """\
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-       background: #0d1117; color: #c9d1d9; padding: 20px; line-height: 1.5; }
+       background: #0d1117; color: #c9d1d9; padding: 20px; line-height: 1.5;
+       max-width: 100vw; overflow-x: hidden; }
 header { margin-bottom: 30px; }
 h1 { color: #58a6ff; font-size: 1.6em; margin-bottom: 10px; }
 h2 { color: #58a6ff; margin: 20px 0 12px; font-size: 1.3em; border-bottom: 1px solid #21262d; padding-bottom: 6px; }

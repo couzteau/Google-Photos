@@ -11,3 +11,4 @@ tests/__pycache__/*
 settings.local.json
 dist/*
 *.zip
+DeGoogled Photos
