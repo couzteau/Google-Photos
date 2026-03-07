@@ -58,13 +58,12 @@ That's it. Pillow (for EXIF extraction) is installed automatically.
 
 > **Why `pip3`?** Many macOS and Linux systems still have Python 2.7 as the default `pip`. If you see "No matching distribution found" or warnings about Python 2.7, that's why. `pip3` ensures you're using Python 3.
 
-### Alternative: run from source
-
-```bash
-git clone https://github.com/couzteau/Degoogle-Photos.git
-cd Degoogle-Photos
-pip3 install -e .
-```
+> **Troubleshooting — macOS: `command not found: degoogle-photos`?** The package installed correctly, but pip placed the executable in a user-local directory that isn't on your PATH by default. Fix it by running:
+> ```bash
+> export PATH="$HOME/Library/Python/3.9/bin:$PATH"
+> degoogle-photos
+> ```
+> Replace `3.9` with your actual Python version (check with `python3 --version`). To make this permanent so it survives Terminal restarts, add the export line to your `~/.zshrc`.
 
 ## Usage
 
