@@ -92,21 +92,26 @@ The script is **safe to stop and restart** at any time. It detects files that ha
 
 ### Dedup mode
 
-Deduplicate any folder without needing a Takeout structure. The source is never modified — a clean copy is written to the output folder.
+Deduplicate one or more folders without needing a Takeout structure. Source folders are never modified — a clean, deduplicated copy is written to the output folder.
 
 ```bash
 # Dry run first — see what would be copied and which groups are duplicates
-degoogle-photos --dedup-scan --dry-run \
+python3 -m degoogle_photos.cli --dedup-scan --dry-run \
   --source "/path/to/photo backup" \
   --output /path/to/output
 
 # Full run — copies unique files, source untouched
-degoogle-photos --dedup-scan \
+python3 -m degoogle_photos.cli --dedup-scan \
   --source "/path/to/photo backup" \
+  --output /path/to/output
+
+# Multiple source folders — deduplicated across all of them
+python3 -m degoogle_photos.cli --dedup-scan \
+  --source "/Volumes/Drive1/photos" "/Volumes/Drive2/old photos" \
   --output /path/to/output
 ```
 
-**Output structure:**
+**Output structure (single source):**
 ```
 output/
   2019/07/IMG_001.jpg        ← unique file, date-organised
@@ -120,24 +125,41 @@ output/
   report/index.html
 ```
 
-Within each duplicate group the file with the **shortest path** is kept; all others are skipped.
+**Output structure (multiple sources):** `by-folder/` is prefixed with each source folder's name so trees don't collide:
+```
+output/
+  2019/07/IMG_001.jpg
+  by-folder/
+    photos/                  ← from Drive1
+      vacation/IMG_001.jpg  →  ../../2019/07/IMG_001.jpg
+    old photos/              ← from Drive2
+      2018/IMG_002.jpg      →  ../../2018/03/IMG_002.jpg
+```
 
-**If `degoogle-photos` is not found**, run it as a module instead:
+Within each duplicate group the file with the **shortest path** is kept; all others are skipped. Duplicates are detected across all source folders.
+
+**Moving the output to another drive:** the `by-folder/` symlinks use relative paths, so they only work if the entire output folder travels as a unit. Copy it with `ditto` (macOS-native, recommended) or `rsync -a` — both preserve symlinks. Never copy `by-folder/` and the `YYYY/MM/` folders separately or the symlinks will break.
 
 ```bash
-python3 -m degoogle_photos.cli --dedup-scan --dry-run \
-  --source "/path/to/photo backup" \
-  --output /path/to/output
+# Recommended
+ditto "/Volumes/Ramrod/deduped collection" "/Volumes/NewDrive/deduped collection"
+
+# Alternative
+rsync -a --progress \
+  "/Volumes/Ramrod/deduped collection/" \
+  "/Volumes/NewDrive/deduped collection/"
 ```
+
+> **If `degoogle-photos` is not found** on your PATH, use `python3 -m degoogle_photos.cli` in place of `degoogle-photos` in all commands above.
 
 ### All options
 
 | Flag | Default | Description |
 |------|---------|-------------|
-| `--source PATH` | current directory | Source root (Takeout dirs for migration; any folder for `--dedup-scan`) |
+| `--source PATH [PATH ...]` | current directory | One or more source folders. For migration: root containing Takeout dirs. For `--dedup-scan`: any folders to scan. |
 | `--output PATH` | `./DeGoogled Photos` | Destination for organised photos or dedup output |
 | `--dry-run` | off | Report what would be done without copying any files |
-| `--dedup-scan` | off | Dedup mode: scan any folder instead of running a Takeout migration |
+| `--dedup-scan` | off | Dedup mode: scan any folder(s) instead of running a Takeout migration |
 
 ## How it works
 
@@ -153,10 +175,10 @@ python3 -m degoogle_photos.cli --dedup-scan --dry-run \
 
 ### Dedup mode
 
-1. **Scan** — Recursively find all media files under `--source`
-2. **Checksum** — Compute MD5 for every file; group identical files together
+1. **Scan** — Recursively find all media files across all `--source` folders
+2. **Checksum** — Compute MD5 for every file; group identical files together (across all sources)
 3. **Copy** — For each unique file (or duplicate group keeper), copy to `YYYY/MM/` using the same date-extraction cascade; name collisions get a `_2`, `_3` suffix
-4. **Symlinks** — Recreate the source folder tree under `by-folder/` with relative symlinks pointing at the date-organised copies
+4. **Symlinks** — Recreate each source folder tree under `by-folder/` (namespaced by source folder name when multiple sources are given) with relative symlinks pointing at the date-organised copies
 5. **Report** — Generate an HTML report listing all duplicate groups with COPIED / SKIPPED status per file
 
 ## HTML Report

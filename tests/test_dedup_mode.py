@@ -17,7 +17,8 @@ def no_browser(monkeypatch):
 
 
 def make_args(source, output, dry_run=False):
-    return argparse.Namespace(source=source, output=output, dry_run=dry_run)
+    sources = source if isinstance(source, list) else [source]
+    return argparse.Namespace(source=sources, output=output, dry_run=dry_run)
 
 
 def media_files_in_output(output: Path):
@@ -209,6 +210,89 @@ def test_all_files_unique_no_groups(tmp_path):
     _run_dedup(make_args(src, out))
     assert len(media_files_in_output(out)) == 3
     assert len(symlinks_in_by_folder(out)) == 3
+
+
+# ---------------------------------------------------------------------------
+# Multiple sources
+# ---------------------------------------------------------------------------
+
+def test_multi_source_files_from_both_sources_are_copied(tmp_path):
+    src1 = tmp_path / "drive1"
+    src2 = tmp_path / "drive2"
+    src1.mkdir()
+    src2.mkdir()
+    (src1 / "IMG_20200510_120000.jpg").write_bytes(b"from-drive1")
+    (src2 / "IMG_20201201_080000.jpg").write_bytes(b"from-drive2")
+    out = tmp_path / "output"
+
+    _run_dedup(make_args([src1, src2], out))
+
+    copied = media_files_in_output(out)
+    assert len(copied) == 2
+
+
+def test_multi_source_cross_source_duplicates_are_deduped(tmp_path):
+    src1 = tmp_path / "drive1"
+    src2 = tmp_path / "drive2"
+    src1.mkdir()
+    src2.mkdir()
+    (src1 / "IMG_20200510_120000.jpg").write_bytes(b"same-content")
+    (src2 / "IMG_20200510_120000.jpg").write_bytes(b"same-content")  # duplicate
+    out = tmp_path / "output"
+
+    _run_dedup(make_args([src1, src2], out))
+
+    copied = media_files_in_output(out)
+    assert len(copied) == 1
+
+
+def test_multi_source_by_folder_prefixed_with_source_name(tmp_path):
+    src1 = tmp_path / "drive1"
+    src2 = tmp_path / "drive2"
+    src1.mkdir()
+    src2.mkdir()
+    (src1 / "IMG_20200510_120000.jpg").write_bytes(b"aaa")
+    (src2 / "IMG_20201201_080000.jpg").write_bytes(b"bbb")
+    out = tmp_path / "output"
+
+    _run_dedup(make_args([src1, src2], out))
+
+    by_folder = out / "by-folder"
+    assert (by_folder / "drive1").is_dir()
+    assert (by_folder / "drive2").is_dir()
+
+
+def test_single_source_by_folder_has_no_prefix(tmp_path):
+    """Single source should not add an extra source-name prefix to by-folder/."""
+    src = tmp_path / "myphotos"
+    (src / "subfolder").mkdir(parents=True)
+    (src / "subfolder" / "IMG_20200510_120000.jpg").write_bytes(b"aaa")
+    out = tmp_path / "output"
+
+    _run_dedup(make_args(src, out))
+
+    by_folder = out / "by-folder"
+    # Direct subfolder, no myphotos/ prefix
+    assert (by_folder / "subfolder").is_dir()
+    assert not (by_folder / "myphotos").exists()
+
+
+def test_multi_source_symlinks_resolve_across_sources(tmp_path):
+    """Symlinks from both sources should resolve to actual copied files."""
+    src1 = tmp_path / "drive1"
+    src2 = tmp_path / "drive2"
+    src1.mkdir()
+    src2.mkdir()
+    (src1 / "IMG_20200510_120000.jpg").write_bytes(b"aaa")
+    (src2 / "IMG_20201201_080000.jpg").write_bytes(b"bbb")
+    out = tmp_path / "output"
+
+    _run_dedup(make_args([src1, src2], out))
+
+    link1 = out / "by-folder" / "drive1" / "IMG_20200510_120000.jpg"
+    link2 = out / "by-folder" / "drive2" / "IMG_20201201_080000.jpg"
+    assert link1.is_symlink() and link1.resolve().read_bytes() == b"aaa"
+    assert link2.is_symlink() and link2.resolve().read_bytes() == b"bbb"
 
 
 def test_no_date_file_goes_to_needs_review(tmp_path):

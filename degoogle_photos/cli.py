@@ -31,24 +31,35 @@ PROGRESS_INTERVAL = 500
 
 def _run_dedup(args):
     """
-    Dedup mode: scan --source, then copy one representative file per unique MD5
-    to --output (mirroring relative paths). The source folder is never modified.
+    Dedup mode: scan one or more --source folders, then copy one representative
+    file per unique MD5 to --output (date-organised). Source folders are never modified.
     """
-    source_root = args.source.resolve()
+    source_roots = [p.resolve() for p in args.source]
     output_root = args.output
     dry_run = args.dry_run
+    multi_source = len(source_roots) > 1
 
-    if not source_root.is_dir():
-        print(f"ERROR: --source '{source_root}' is not a directory.")
-        raise SystemExit(1)
+    for src in source_roots:
+        if not src.is_dir():
+            print(f"ERROR: --source '{src}' is not a directory.")
+            raise SystemExit(1)
 
     report = DedupReport(output_root, dry_run)
     start = time.time()
 
-    # Phase 1: Find all media files
-    print(f"Phase 1: Scanning '{source_root}' for media files...")
-    files = find_all_media_files(source_root, MEDIA_EXTENSIONS)
-    print(f"  Found {len(files)} media files")
+    # Phase 1: Find all media files across all source roots
+    file_to_source = {}   # Path -> source_root it came from
+    all_files = []
+    for src in source_roots:
+        print(f"Phase 1: Scanning '{src}'...")
+        found = find_all_media_files(src, MEDIA_EXTENSIONS)
+        print(f"  Found {len(found)} media files")
+        for f in found:
+            file_to_source[f] = src
+        all_files.extend(found)
+
+    files = all_files
+    print(f"  Total: {len(files)} media files across {len(source_roots)} source(s)")
     report.total = len(files)
 
     # Phase 2: Compute MD5s
@@ -118,13 +129,15 @@ def _run_dedup(args):
     report.copied = copied
 
     # Phase 4: Recreate source folder tree under by-folder/ using symlinks
+    # With multiple sources, prefix each tree with the source folder's name.
     by_folder_root = output_root / "by-folder"
     action4 = "Would create" if dry_run else "Creating"
     print(f"\nPhase 4: {action4} folder aliases under '{by_folder_root}'...")
     link_count = 0
     for src, dest in src_to_dest.items():
-        rel = src.relative_to(source_root)
-        link_path = by_folder_root / rel
+        src_root = file_to_source[src]
+        rel = src.relative_to(src_root)
+        link_path = by_folder_root / src_root.name / rel if multi_source else by_folder_root / rel
         try:
             if not dry_run:
                 link_path.parent.mkdir(parents=True, exist_ok=True)
@@ -158,6 +171,9 @@ def _run_dedup(args):
         print(f"Errors:              {errors}")
     print(f"Time elapsed:        {elapsed:.1f}s")
     print(f"{'='*60}")
+    for src in source_roots:
+        label = f"Source ({src.name}):" if multi_source else "Source:      "
+        print(f"{label} {src}")
     print(f"\nDate folders: {output_root.resolve()}")
     print(f"By folder:    {by_folder_root.resolve()}")
     print(f"Report:       {report_index.resolve()}")
@@ -168,8 +184,9 @@ def _run_dedup(args):
 def main():
     parser = argparse.ArgumentParser(description="Migrate Google Takeout photos to YYYY/MM/ structure")
     parser.add_argument("--dry-run", action="store_true", help="Report what would be done without copying or deleting")
-    parser.add_argument("--source", type=Path, default=Path.cwd(),
-                        help="Source root (Takeout dirs for migration; any folder for --dedup-scan)")
+    parser.add_argument("--source", type=Path, nargs="+", default=[Path.cwd()],
+                        help="One or more source folders. For migration: root containing Takeout dirs. "
+                             "For --dedup-scan: any folders to scan (repeat --source or space-separate).")
     parser.add_argument("--output", type=Path, default=Path.cwd() / "DeGoogled Photos",
                         help="Output root for organized photos or dedup report (default: ./DeGoogled Photos)")
 
@@ -187,7 +204,7 @@ def main():
         _run_dedup(args)
         return
 
-    source_root = args.source
+    source_root = args.source[0]
     output_root = args.output
     dry_run = args.dry_run
 
