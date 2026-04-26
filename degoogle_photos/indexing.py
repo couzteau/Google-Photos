@@ -156,6 +156,18 @@ def _strip_sidecar_suffix(json_filename: str) -> Optional[str]:
     return None
 
 
+def find_all_media_files(source_root: Path, media_extensions: Set[str]) -> List[Path]:
+    """
+    Recursively find all media files under source_root.
+    No Takeout structure required — works on any arbitrary directory tree.
+    """
+    files = []
+    for fpath in source_root.rglob("*"):
+        if fpath.is_file() and fpath.suffix.lower() in media_extensions:
+            files.append(fpath)
+    return files
+
+
 def find_json_for_media(
     media_path: Path,
     album_name: str,

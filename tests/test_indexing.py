@@ -8,6 +8,7 @@ from degoogle_photos.indexing import (
     build_index,
     _strip_sidecar_suffix,
     find_json_for_media,
+    find_all_media_files,
 )
 
 
@@ -120,3 +121,36 @@ def test_find_json_for_media_prefix_match(tmp_path):
     media_file = [p for p, _ in media][0]
     result = find_json_for_media(media_file, "Album1", json_idx)
     assert result is not None
+
+
+# ---------------------------------------------------------------------------
+# find_all_media_files
+# ---------------------------------------------------------------------------
+
+def test_find_all_media_files_flat(tmp_path):
+    (tmp_path / "photo.jpg").write_bytes(b"x")
+    (tmp_path / "clip.mp4").write_bytes(b"x")
+    (tmp_path / "readme.txt").write_bytes(b"x")  # should be ignored
+    found = find_all_media_files(tmp_path, MEDIA_EXTENSIONS)
+    names = {f.name for f in found}
+    assert names == {"photo.jpg", "clip.mp4"}
+
+
+def test_find_all_media_files_nested(tmp_path):
+    deep = tmp_path / "a" / "b" / "c"
+    deep.mkdir(parents=True)
+    (deep / "nested.jpg").write_bytes(b"x")
+    (tmp_path / "top.jpg").write_bytes(b"x")
+    found = find_all_media_files(tmp_path, MEDIA_EXTENSIONS)
+    assert len(found) == 2
+
+
+def test_find_all_media_files_case_insensitive_extensions(tmp_path):
+    (tmp_path / "photo.JPG").write_bytes(b"x")
+    (tmp_path / "photo.JPEG").write_bytes(b"x")
+    found = find_all_media_files(tmp_path, MEDIA_EXTENSIONS)
+    assert len(found) == 2
+
+
+def test_find_all_media_files_empty_dir(tmp_path):
+    assert find_all_media_files(tmp_path, MEDIA_EXTENSIONS) == []

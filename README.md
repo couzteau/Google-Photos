@@ -28,12 +28,19 @@ You'll end up with something like `Takeout/`, `Takeout-2/`, `Takeout-3/`, ... ea
 
 ## What it does
 
+**Takeout migration mode** (default):
 - Scans multiple `Takeout*/Google Photos/` directories and builds a global index
 - Extracts the best date for each file (EXIF > JSON photoTakenTime > filename > JSON creationTime > file mtime)
 - Deduplicates by MD5 hash + date (rounded to the minute)
 - Copies media files into `YYYY/MM/` folders, preserving JSON sidecars alongside
 - Creates `Albums/` folder with relative symlinks for named albums
 - Generates a multi-page HTML report with thumbnails, metadata tooltips, and Finder links
+
+**Dedup mode** (`--dedup-scan`):
+- Scans any folder and its subdirectories for duplicate media files
+- Copies one unique file per duplicate group into a date-organised `YYYY/MM/` structure
+- Recreates the original folder tree under `by-folder/` as symlinks pointing at the date-organised files
+- The source folder is never modified
 
 ## Prerequisites
 
@@ -67,8 +74,10 @@ That's it. Pillow (for EXIF extraction) is installed automatically.
 
 ## Usage
 
+### Takeout migration
+
 ```bash
-# Simplest: cd into the folder with your extrackted Takeout dirs and run
+# Simplest: cd into the folder with your extracted Takeout dirs and run
 cd /path/to/takeouts
 degoogle-photos
 
@@ -79,25 +88,76 @@ degoogle-photos --source /path/to/takeouts --output /path/to/organized
 degoogle-photos --dry-run
 ```
 
-### Options
+The script is **safe to stop and restart** at any time. It detects files that have already been copied and skips them, so you'll never end up with duplicates — even if you run it multiple times or interrupt it halfway through.
 
-| Flag | Description |
-|------|-------------|
-| `--source PATH` | Root directory containing `Takeout*/` folders (default: current directory) |
-| `--output PATH` | Destination for organized photos (default: `./DeGoogled Photos`) |
-| `--dry-run` | Report what would be done without copying any files |
+### Dedup mode
 
-The script is **safe to stop and restart** at any time. It detects files that have already been copied and skips them, so you'll never end up with duplicates -- even if you run it multiple times or interrupt it halfway through.
+Deduplicate any folder without needing a Takeout structure. The source is never modified — a clean copy is written to the output folder.
+
+```bash
+# Dry run first — see what would be copied and which groups are duplicates
+degoogle-photos --dedup-scan --dry-run \
+  --source "/path/to/photo backup" \
+  --output /path/to/output
+
+# Full run — copies unique files, source untouched
+degoogle-photos --dedup-scan \
+  --source "/path/to/photo backup" \
+  --output /path/to/output
+```
+
+**Output structure:**
+```
+output/
+  2019/07/IMG_001.jpg        ← unique file, date-organised
+  2020/03/VID_001.mp4
+  needs_review/IMG_nodate.jpg
+  by-folder/                 ← original folder tree as symlinks
+    vacation 2019/
+      IMG_001.jpg  →  ../../2019/07/IMG_001.jpg
+    birthday/
+      VID_001.mp4  →  ../../2020/03/VID_001.mp4
+  report/index.html
+```
+
+Within each duplicate group the file with the **shortest path** is kept; all others are skipped.
+
+**If `degoogle-photos` is not found**, run it as a module instead:
+
+```bash
+python3 -m degoogle_photos.cli --dedup-scan --dry-run \
+  --source "/path/to/photo backup" \
+  --output /path/to/output
+```
+
+### All options
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--source PATH` | current directory | Source root (Takeout dirs for migration; any folder for `--dedup-scan`) |
+| `--output PATH` | `./DeGoogled Photos` | Destination for organised photos or dedup output |
+| `--dry-run` | off | Report what would be done without copying any files |
+| `--dedup-scan` | off | Dedup mode: scan any folder instead of running a Takeout migration |
 
 ## How it works
 
-1. **Index** -- Scan all Takeout directories, index media files and JSON sidecars by album
-2. **Match** -- Link each media file to its JSON sidecar via title field or filename stripping
-3. **Date extraction** -- Extract the best date using a priority cascade (EXIF > JSON > filename > mtime)
-4. **Deduplication** -- Skip files with identical MD5 + date (within the same minute)
-5. **Copy** -- Copy to `YYYY/MM/filename` with collision resolution (`_2`, `_3`, etc.)
-6. **Albums** -- Create `Albums/<name>/` with relative symlinks to the copied files
-7. **Report** -- Generate a browsable HTML report with per-folder and per-album pages
+### Takeout migration
+
+1. **Index** — Scan all Takeout directories, index media files and JSON sidecars by album
+2. **Match** — Link each media file to its JSON sidecar via title field or filename stripping
+3. **Date extraction** — Extract the best date using a priority cascade (EXIF > JSON > filename > mtime)
+4. **Deduplication** — Skip files with identical MD5 + date (within the same minute)
+5. **Copy** — Copy to `YYYY/MM/filename` with collision resolution (`_2`, `_3`, etc.)
+6. **Albums** — Create `Albums/<name>/` with relative symlinks to the copied files
+7. **Report** — Generate a browsable HTML report with per-folder and per-album pages
+
+### Dedup mode
+
+1. **Scan** — Recursively find all media files under `--source`
+2. **Checksum** — Compute MD5 for every file; group identical files together
+3. **Copy** — For each unique file (or duplicate group keeper), copy to `YYYY/MM/` using the same date-extraction cascade; name collisions get a `_2`, `_3` suffix
+4. **Symlinks** — Recreate the source folder tree under `by-folder/` with relative symlinks pointing at the date-organised copies
+5. **Report** — Generate an HTML report listing all duplicate groups with COPIED / SKIPPED status per file
 
 ## HTML Report
 
@@ -114,21 +174,22 @@ The report is written to `<output>/report/index.html` and includes:
 ```
 degoogle_photos/
   __init__.py          # Package version
-  indexing.py          # Takeout directory scanning and JSON sidecar indexing
+  indexing.py          # Takeout directory scanning, JSON sidecar indexing, recursive file finder
   dates.py             # Date extraction (EXIF, JSON, filename, mtime)
   metadata.py          # Rich metadata extraction for report tooltips
-  dedup.py             # MD5 hashing and deduplication keys
+  dedup.py             # MD5 hashing, deduplication keys, duplicate grouping
   copy.py              # File copying with collision resolution
-  report.py            # Multi-page HTML report generation
+  report.py            # HTML report generation (migration + dedup modes)
   logging_util.py      # Migration logging and progress reporting
   albums.py            # Album symlink creation
-  cli.py               # CLI entry point and orchestration
+  cli.py               # CLI entry point — migration and dedup-scan orchestration
 tests/
   conftest.py          # Shared test fixtures
   test_indexing.py
   test_dates.py
   test_metadata.py
   test_dedup.py
+  test_dedup_mode.py   # End-to-end integration tests for --dedup-scan
   test_copy.py
   test_report.py
   test_albums.py

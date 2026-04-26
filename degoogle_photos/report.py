@@ -289,6 +289,139 @@ class HtmlReport:
         )
 
 
+class DedupReport:
+    """HTML report for a dedup scan (no Takeout structure required)."""
+
+    def __init__(self, output_dir: Path, dry_run: bool):
+        self.output_dir = output_dir
+        self.dry_run = dry_run
+        self.report_dir = output_dir / "report"
+        self.groups: list = []   # [{"md5": str, "files": [{"path", "name", "size", "keeper"}]}]
+        self.scanned = 0
+        self.total = 0
+        self.copied = 0
+        self.errors: list = []   # [{"path": str, "error": str}]
+
+    def add_group(self, md5: str, files):
+        """Add a duplicate group. files is a list of Path; first entry is the keeper."""
+        group_files = []
+        for i, fpath in enumerate(files):
+            try:
+                size = fpath.stat().st_size
+            except OSError:
+                size = 0
+            group_files.append({
+                "path": str(fpath),
+                "name": fpath.name,
+                "size": size,
+                "is_image": fpath.suffix.lower() in IMAGE_EXTENSIONS,
+                "keeper": i == 0,
+            })
+        self.groups.append({"md5": md5, "files": group_files})
+
+    def add_error(self, path, error: str):
+        self.errors.append({"path": str(path), "error": error})
+
+    def write(self):
+        self.report_dir.mkdir(parents=True, exist_ok=True)
+        self._write_css()
+        self._write_index()
+
+    # ------------------------------------------------------------------
+
+    def _write_css(self):
+        (self.report_dir / "style.css").write_text(_CSS, encoding="utf-8")
+
+    def _write_index(self):
+        dupe_file_count = sum(len(g["files"]) - 1 for g in self.groups)
+        wasted_bytes = sum(
+            f["size"] for g in self.groups for f in g["files"] if not f["keeper"]
+        )
+
+        prefix = "[DRY RUN] " if self.dry_run else ""
+        html = []
+        html.append(
+            '<!DOCTYPE html>\n<html lang="en"><head><meta charset="utf-8">'
+            '<meta name="viewport" content="width=device-width, initial-scale=1">'
+            f'<title>{prefix}Dedup Report</title>'
+            '<link rel="stylesheet" href="style.css">'
+            '<script>function copyText(btn,t){navigator.clipboard.writeText(t).then(function(){'
+            'var o=btn.textContent;btn.textContent="Copied!";setTimeout(function(){btn.textContent=o},1000)})}</script>'
+            '</head><body>'
+        )
+        html.append(f'<header><h1>{prefix}Dedup Report</h1>'
+                    f'<p class="updated" style="color:#8b949e;font-size:0.9em;margin-top:4px">'
+                    f'Source is read-only. One file per duplicate group was copied to the output folder.</p>')
+        html.append(f'<p class="updated">Generated: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}'
+                    f' &mdash; {self.scanned}/{self.total} files scanned</p></header>')
+
+        # Summary stats
+        html.append('<section class="summary"><h2>Summary</h2><div class="stat-grid">')
+        html.append(f'<div class="stat"><span class="num">{self.scanned}</span><span class="label">Files scanned</span></div>')
+        html.append(f'<div class="stat"><span class="num">{self.copied}</span><span class="label">Unique files copied</span></div>')
+        html.append(f'<div class="stat"><span class="num">{len(self.groups)}</span><span class="label">Duplicate groups</span></div>')
+        html.append(f'<div class="stat"><span class="num">{dupe_file_count}</span><span class="label">Duplicates skipped</span></div>')
+        html.append(f'<div class="stat"><span class="num">{_fmt_bytes(wasted_bytes)}</span><span class="label">Space saved</span></div>')
+        html.append('</div>')
+
+        if not self.groups:
+            html.append('<p style="color:#3fb950;margin-top:16px">No duplicates found.</p>')
+        html.append('</section>')
+
+        # Duplicate groups
+        if self.groups:
+            html.append('<section><h2>Duplicate Groups</h2>')
+            for i, g in enumerate(self.groups, 1):
+                group_wasted = sum(f["size"] for f in g["files"] if not f["keeper"])
+                html.append(
+                    f'<details open><summary>'
+                    f'Group {i} &mdash; {len(g["files"])} copies &mdash; '
+                    f'{_fmt_bytes(group_wasted)} wasted &mdash; '
+                    f'<code>{g["md5"]}</code>'
+                    f'</summary>'
+                )
+                html.append('<table><tr><th>Status</th><th>Path</th><th>Size</th><th></th></tr>')
+                for f in g["files"]:
+                    status_class = "keeper" if f["keeper"] else "dupe"
+                    status_label = "COPIED" if f["keeper"] else "SKIPPED"
+                    status_style = 'color:#3fb950' if f["keeper"] else 'color:#8b949e'
+                    copy_btn = (
+                        f'<button class="copy-btn" onclick="copyText(this, \'{_html_escape(f["path"])}\')"'
+                        f' title="Copy path">&#x1f4cb; Path</button>'
+                    )
+                    html.append(
+                        f'<tr class="{status_class}">'
+                        f'<td style="{status_style};font-weight:600">{status_label}</td>'
+                        f'<td style="font-size:0.8em;word-break:break-all">{_html_escape(f["path"])}</td>'
+                        f'<td style="white-space:nowrap">{_fmt_bytes(f["size"])}</td>'
+                        f'<td>{copy_btn}</td>'
+                        f'</tr>'
+                    )
+                html.append('</table></details>')
+            html.append('</section>')
+
+        # Errors
+        if self.errors:
+            html.append('<section class="errors"><h2>Errors</h2>')
+            html.append('<table><tr><th>Path</th><th>Error</th></tr>')
+            for e in self.errors:
+                html.append(f'<tr><td>{_html_escape(e["path"])}</td><td>{_html_escape(e["error"])}</td></tr>')
+            html.append('</table></section>')
+
+        html.append(_FOOTER)
+        html.append('</body></html>')
+        (self.report_dir / "index.html").write_text("\n".join(html), encoding="utf-8")
+
+
+def _fmt_bytes(n: int) -> str:
+    """Human-readable byte size."""
+    for unit in ("B", "KB", "MB", "GB", "TB"):
+        if n < 1024:
+            return f"{n:.1f} {unit}" if unit != "B" else f"{n} B"
+        n /= 1024
+    return f"{n:.1f} PB"
+
+
 _FOOTER = (
     '<footer class="site-footer">'
     'Generated by <a href="https://github.com/couzteau/Degoogle-Photos">Degoogle-Photos</a>'

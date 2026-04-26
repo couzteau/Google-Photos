@@ -1,16 +1,21 @@
 """CLI entry point — orchestrates the full migration pipeline."""
 
 import argparse
+import os
+import shutil
+import time
+import webbrowser
 from collections import defaultdict
 from pathlib import Path
 
-from .indexing import find_takeout_dirs, build_index, find_json_for_media
+from .indexing import find_takeout_dirs, build_index, find_json_for_media, find_all_media_files
 from .dates import extract_date
 from .metadata import extract_metadata
-from .dedup import compute_md5, make_dedup_key
-from .copy import compute_dest_path, is_already_copied, copy_with_sidecar
+from .dedup import compute_md5, make_dedup_key, group_duplicates
+from .copy import compute_dest_path, resolve_collision, is_already_copied, copy_with_sidecar
 from .albums import create_album_symlinks
 from .logging_util import MigrationLog
+from .report import DedupReport
 
 # ---------------------------------------------------------------------------
 # Configuration
@@ -24,14 +29,163 @@ MEDIA_EXTENSIONS = {
 PROGRESS_INTERVAL = 500
 
 
+def _run_dedup(args):
+    """
+    Dedup mode: scan --source, then copy one representative file per unique MD5
+    to --output (mirroring relative paths). The source folder is never modified.
+    """
+    source_root = args.source.resolve()
+    output_root = args.output
+    dry_run = args.dry_run
+
+    if not source_root.is_dir():
+        print(f"ERROR: --source '{source_root}' is not a directory.")
+        raise SystemExit(1)
+
+    report = DedupReport(output_root, dry_run)
+    start = time.time()
+
+    # Phase 1: Find all media files
+    print(f"Phase 1: Scanning '{source_root}' for media files...")
+    files = find_all_media_files(source_root, MEDIA_EXTENSIONS)
+    print(f"  Found {len(files)} media files")
+    report.total = len(files)
+
+    # Phase 2: Compute MD5s
+    print(f"\nPhase 2: Computing checksums...")
+    progress_interval = max(1, len(files) // 200)  # ~200 progress updates
+
+    def _progress(current, total):
+        report.scanned = current
+        if current % progress_interval == 0 or current == total:
+            elapsed = time.time() - start
+            rate = current / elapsed if elapsed > 0 else 0
+            pct = current / total * 100 if total > 0 else 0
+            print(
+                f"\r  {current}/{total} ({pct:.1f}%) | {rate:.0f} files/sec",
+                end="", flush=True,
+            )
+
+    try:
+        dup_groups = group_duplicates(files, progress_cb=_progress)
+    except Exception as e:
+        print(f"\nERROR during scan: {e}")
+        raise SystemExit(1)
+
+    print()  # newline after progress bar
+
+    # Build the set of files that are duplicates (all but the keeper per group)
+    skipped_paths = set()
+    for _md5, group in dup_groups:
+        for dupe in group[1:]:
+            skipped_paths.add(dupe)
+        report.add_group(_md5, group)
+
+    dupe_file_count = len(skipped_paths)
+    unique_count = len(files) - dupe_file_count
+    print(f"  {len(dup_groups)} duplicate groups — {dupe_file_count} files will be skipped, "
+          f"{unique_count} unique files to copy")
+
+    # Phase 3: Copy unique files into YYYY/MM/ and mirror source tree as symlinks
+    action = "Would copy" if dry_run else "Copying"
+    print(f"\nPhase 3: {action} {unique_count} unique files to '{output_root}' (date-organised)...")
+    unique_files = [f for f in files if f not in skipped_paths]
+    copied = 0
+    errors = 0
+    copy_interval = max(1, unique_count // 200)
+    src_to_dest = {}  # track actual dest for symlink phase
+
+    for i, src in enumerate(unique_files, 1):
+        dt, _date_source = extract_date(src, None)
+        dest = compute_dest_path(output_root, src, dt)
+        try:
+            if not dry_run:
+                dest = resolve_collision(dest)
+                dest.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(src, dest)
+            src_to_dest[src] = dest
+            copied += 1
+        except Exception as e:
+            msg = f"{type(e).__name__}: {e}"
+            report.add_error(src, msg)
+            errors += 1
+
+        if i % copy_interval == 0 or i == unique_count:
+            pct = i / unique_count * 100 if unique_count > 0 else 0
+            print(f"\r  {i}/{unique_count} ({pct:.1f}%)", end="", flush=True)
+
+    print()  # newline after progress bar
+    report.copied = copied
+
+    # Phase 4: Recreate source folder tree under by-folder/ using symlinks
+    by_folder_root = output_root / "by-folder"
+    action4 = "Would create" if dry_run else "Creating"
+    print(f"\nPhase 4: {action4} folder aliases under '{by_folder_root}'...")
+    link_count = 0
+    for src, dest in src_to_dest.items():
+        rel = src.relative_to(source_root)
+        link_path = by_folder_root / rel
+        try:
+            if not dry_run:
+                link_path.parent.mkdir(parents=True, exist_ok=True)
+                if not link_path.exists():
+                    rel_target = os.path.relpath(dest, link_path.parent)
+                    link_path.symlink_to(rel_target)
+            link_count += 1
+        except Exception as e:
+            msg = f"{type(e).__name__}: {e}"
+            report.add_error(src, f"symlink: {msg}")
+
+    print(f"  {link_count} aliases created")
+
+    # Write report
+    output_root.mkdir(parents=True, exist_ok=True)
+    report.write()
+
+    elapsed = time.time() - start
+    report_index = report.report_dir / "index.html"
+
+    prefix = "[DRY RUN] " if dry_run else ""
+    print(f"\n{'='*60}")
+    print(f"{prefix}Dedup Summary")
+    print(f"{'='*60}")
+    print(f"Files scanned:       {report.scanned}")
+    print(f"Duplicate groups:    {len(dup_groups)}")
+    print(f"Duplicates skipped:  {dupe_file_count}")
+    print(f"Unique files copied: {copied}")
+    print(f"Folder aliases:      {link_count}")
+    if errors:
+        print(f"Errors:              {errors}")
+    print(f"Time elapsed:        {elapsed:.1f}s")
+    print(f"{'='*60}")
+    print(f"\nDate folders: {output_root.resolve()}")
+    print(f"By folder:    {by_folder_root.resolve()}")
+    print(f"Report:       {report_index.resolve()}")
+    if report_index.exists():
+        webbrowser.open(report_index.resolve().as_uri())
+
+
 def main():
     parser = argparse.ArgumentParser(description="Migrate Google Takeout photos to YYYY/MM/ structure")
-    parser.add_argument("--dry-run", action="store_true", help="Report what would be done without copying")
+    parser.add_argument("--dry-run", action="store_true", help="Report what would be done without copying or deleting")
     parser.add_argument("--source", type=Path, default=Path.cwd(),
-                        help="Source root containing Takeout dirs (default: current directory)")
+                        help="Source root (Takeout dirs for migration; any folder for --dedup-scan)")
     parser.add_argument("--output", type=Path, default=Path.cwd() / "DeGoogled Photos",
-                        help="Output root for organized photos (default: ./DeGoogled Photos)")
+                        help="Output root for organized photos or dedup report (default: ./DeGoogled Photos)")
+
+    # Dedup mode
+    parser.add_argument("--dedup-scan", action="store_true",
+                        help="Copy deduplicated media files from --source to --output. "
+                             "One file is kept per duplicate group (shortest path wins). "
+                             "The source folder is never modified.")
+
     args = parser.parse_args()
+
+    if args.dedup_scan:
+        if args.output == Path.cwd() / "DeGoogled Photos":
+            args.output = Path.cwd() / "Deduped Photos"
+        _run_dedup(args)
+        return
 
     source_root = args.source
     output_root = args.output
